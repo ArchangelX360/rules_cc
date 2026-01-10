@@ -393,5 +393,13 @@ The label of the rule providing <code>cc_toolchain_config_info</code>.""",
             providers = [ToolConfigInfo],
         ),
         "_builtin_features": attr.label(default = "//cc/toolchains/features:all_builtin_features", providers = [FeatureSetInfo]),
+        "_compiler_known_features": attr.label_list(default = [
+            "//cc/toolchains/compiler:clang",
+            "//cc/toolchains/compiler:clang-cl",
+            "//cc/toolchains/compiler:gcc",
+            "//cc/toolchains/compiler:mingw-gcc",
+            "//cc/toolchains/compiler:msvc-cl",
+            "//cc/toolchains/compiler:emscripten",
+        ]),
     } | semantics.cpp_modules_tools(),  # buildifier: disable=unsorted-dict-items
 )
