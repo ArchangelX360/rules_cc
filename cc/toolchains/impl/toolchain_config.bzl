@@ -51,6 +51,13 @@ cc_legacy_file_group = rule(
     },
 )
 
+def _compiler_feature(ctx):
+    features = {
+        t.label.name: t
+        for t in ctx.attr._compiler_known_features
+    }
+    return features.get(ctx.attr.compiler, features.get("gcc"))
+
 def cc_toolchain_config_impl_helper(ctx):
     """Main implementation for _cc_toolchain_config_impl, reused for rules-based toolchains
 
@@ -58,18 +65,19 @@ def cc_toolchain_config_impl_helper(ctx):
       ctx: Rule context
     Returns:
         toolchain_config_info and cc_toolchain_config_info providers"""
-
     if ctx.attr.features:
         fail("Features is a reserved attribute in bazel. Did you mean 'known_features' or 'enabled_features'?")
 
+    compiler_feature = _compiler_feature(ctx)
     toolchain_config = toolchain_config_info(
         label = ctx.label,
-        known_features = ctx.attr.known_features + [ctx.attr._builtin_features],
-        enabled_features = ctx.attr.enabled_features,
+        known_features = ctx.attr.known_features + [ctx.attr._builtin_features] + ctx.attr._compiler_known_features,
+        enabled_features = ctx.attr.enabled_features + [compiler_feature],
         tool_map = ctx.attr.tool_map,
         args = ctx.attr.args,
         artifact_name_patterns = ctx.attr.artifact_name_patterns,
         make_variables = ctx.attr.make_variables,
+        compiler_feature = compiler_feature,
     )
 
     legacy = convert_toolchain(toolchain_config)
@@ -129,6 +137,14 @@ cc_toolchain_config = rule(
     implementation = _cc_toolchain_config_impl,
     attrs = CC_TOOLCHAIN_CONFIG_PUBLIC_ATTRS | {
         "_builtin_features": attr.label(default = "//cc/toolchains/features:all_builtin_features"),
+        "_compiler_known_features": attr.label_list(default = [
+            "//cc/toolchains/compiler:clang",
+            "//cc/toolchains/compiler:clang-cl",
+            "//cc/toolchains/compiler:gcc",
+            "//cc/toolchains/compiler:mingw-gcc",
+            "//cc/toolchains/compiler:msvc-cl",
+            "//cc/toolchains/compiler:emscripten",
+        ]),
     },
     provides = [ToolchainConfigInfo],
 )
